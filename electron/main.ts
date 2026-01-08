@@ -24,8 +24,10 @@ function createWindow() {
     },
   });
 
-  if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:5173');
+  const devServerUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
+
+  if (!app.isPackaged) {
+    mainWindow.loadURL(devServerUrl);
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
