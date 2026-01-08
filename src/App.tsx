@@ -34,7 +34,7 @@ function App() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 relative z-10 flex items-start justify-center p-8 pt-12 pb-16">
+      <div className="flex-1 min-h-0 relative z-10 flex items-start justify-center p-8 pt-12 pb-16 overflow-y-auto">
         <AnimatePresence mode="wait">
           {currentStep === 'pre-check' && (
             <motion.div
@@ -69,7 +69,7 @@ function App() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 50 }}
               transition={{ duration: 0.3 }}
-              className="w-full max-w-6xl"
+              className="w-full max-w-6xl h-full min-h-0"
             >
               <InstallationSteps />
             </motion.div>
