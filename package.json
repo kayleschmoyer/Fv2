@@ -3,20 +3,25 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Modern installer for FLIv2 with automated setup",
-  "main": "dist/electron/main.js",
+  "main": "dist/electron/main.cjs",
   "scripts": {
     "dev": "concurrently \"npm run dev:react\" \"npm run dev:electron\"",
     "dev:react": "vite",
-    "dev:electron": "tsc -p tsconfig.electron.json && electron .",
-    "build": "tsc -p tsconfig.electron.json && vite build",
+    "dev:electron": "npm run build:electron && electron .",
+    "build:electron": "tsc -p tsconfig.electron.json && node scripts/rename-to-cjs.js",
+    "build": "npm run build:electron && vite build",
     "package": "electron-builder",
     "package:win": "electron-builder --win"
   },
-  "keywords": ["FLIv2", "installer", "automation"],
+  "keywords": [
+    "FLIv2",
+    "installer",
+    "automation"
+  ],
   "author": "Ensight",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^20.10.0",
+    "@types/node": "^20.19.27",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
@@ -43,7 +48,9 @@
     "appId": "com.ensight.fliv2installer",
     "productName": "FLIv2 Installer",
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "assets/icon.ico"
     },
     "files": [
