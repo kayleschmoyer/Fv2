@@ -83,7 +83,7 @@ ipcMain.handle('check-path-exists', async (_, filePath: string) => {
   return fs.existsSync(filePath);
 });
 
-ipcMain.handle('download-file', async (_, { url, destination, onProgress }: any) => {
+ipcMain.handle('download-file', async (_, { url, destination }: any) => {
   try {
     const response = await axios({
       url,
@@ -159,7 +159,7 @@ ipcMain.handle('select-file', async () => {
 });
 
 // Google Drive authentication and download
-ipcMain.handle('google-auth', async (_, credentials: any) => {
+ipcMain.handle('google-auth', async () => {
   // This will be implemented with Google OAuth2
   // For now, we'll use direct download links
   return { success: true, message: 'Authentication successful' };
