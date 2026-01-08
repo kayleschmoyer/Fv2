@@ -20,10 +20,10 @@ const PreInstallCheck = () => {
         transition={{ duration: 0.5 }}
       >
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-ai-purple to-ai-pink bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-ensight bg-clip-text text-transparent">
             Pre-Installation Checklist
           </h1>
-          <p className="text-white/60">
+          <p className="text-light-text-secondary dark:text-dark-text-secondary">
             Please confirm you've completed the following manual steps before proceeding
           </p>
         </div>
@@ -38,7 +38,7 @@ const PreInstallCheck = () => {
               className={`glass p-6 cursor-pointer transition-all duration-300 ${
                 item.checked
                   ? 'border-green-500/50 bg-green-500/5'
-                  : 'border-white/10 hover:border-white/20'
+                  : 'border-light-border dark:border-dark-border hover:border-light-border-light dark:hover:border-dark-border-light'
               }`}
               onClick={() => updatePreCheckItem(item.id, !item.checked)}
             >
@@ -51,8 +51,8 @@ const PreInstallCheck = () => {
                   )}
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg mb-2">{item.question}</h3>
-                  <p className="text-white/60 text-sm">{item.description}</p>
+                  <h3 className="font-semibold text-lg mb-2 text-light-text dark:text-dark-text">{item.question}</h3>
+                  <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm">{item.description}</p>
                 </div>
               </div>
             </motion.div>
