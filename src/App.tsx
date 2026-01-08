@@ -18,19 +18,23 @@ function App() {
   }, []);
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-light-bg dark:bg-dark-bg">
+    <div className="relative min-h-screen w-full flex flex-col overflow-x-hidden bg-light-bg dark:bg-dark-bg">
       {/* Custom Title Bar */}
       <TitleBar />
 
       {/* Background Effects - subtle gradient orbs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-hero-glow opacity-70 dark:opacity-90" />
+        <div className="absolute inset-0 futuristic-grid opacity-40 dark:opacity-60" />
+        <div className="absolute inset-0 scanline-overlay opacity-30" />
         <div className="absolute top-0 -left-4 w-96 h-96 bg-ensight-blue/20 dark:bg-ensight-blue/30 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse-slow" />
         <div className="absolute top-0 -right-4 w-96 h-96 bg-ensight-blue-light/20 dark:bg-ensight-blue-light/30 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse-slow animation-delay-2000" />
         <div className="absolute -bottom-8 left-20 w-96 h-96 bg-ensight-blue-dark/20 dark:bg-ensight-blue-dark/30 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse-slow animation-delay-4000" />
+        <div className="absolute top-1/3 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-ensight-blue/20 blur-[120px] animate-float" />
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 relative z-10 flex items-center justify-center p-8">
+      <div className="flex-1 relative z-10 flex items-start justify-center p-8 pt-12 pb-16">
         <AnimatePresence mode="wait">
           {currentStep === 'pre-check' && (
             <motion.div

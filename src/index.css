@@ -38,6 +38,29 @@
 }
 
 @layer components {
+  .bg-hero-glow {
+    background: radial-gradient(circle at top, rgba(91, 157, 247, 0.35), transparent 60%),
+      radial-gradient(circle at 20% 20%, rgba(109, 168, 248, 0.2), transparent 55%),
+      radial-gradient(circle at 80% 30%, rgba(74, 142, 247, 0.25), transparent 50%);
+  }
+
+  .futuristic-grid {
+    background-image: linear-gradient(rgba(91, 157, 247, 0.15) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(91, 157, 247, 0.15) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.9), transparent 70%);
+  }
+
+  .scanline-overlay {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.06),
+      rgba(255, 255, 255, 0.06) 1px,
+      transparent 1px,
+      transparent 5px
+    );
+  }
+
   /* Glass morphism effect - adapts to theme */
   .glass {
     @apply bg-light-surface/80 backdrop-blur-xl border border-light-border rounded-2xl;
