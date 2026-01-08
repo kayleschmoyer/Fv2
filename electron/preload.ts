@@ -1,0 +1,31 @@
+import { contextBridge, ipcRenderer } from 'electron';
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  // Window controls
+  minimizeWindow: () => ipcRenderer.send('window-minimize'),
+  maximizeWindow: () => ipcRenderer.send('window-maximize'),
+  closeWindow: () => ipcRenderer.send('window-close'),
+
+  // File system operations
+  createDirectory: (path: string) => ipcRenderer.invoke('create-directory', path),
+  checkPathExists: (path: string) => ipcRenderer.invoke('check-path-exists', path),
+  downloadFile: (url: string, destination: string) =>
+    ipcRenderer.invoke('download-file', { url, destination }),
+  copyFile: (source: string, destination: string) =>
+    ipcRenderer.invoke('copy-file', { source, destination }),
+  moveFile: (source: string, destination: string) =>
+    ipcRenderer.invoke('move-file', { source, destination }),
+  executeCommand: (command: string) => ipcRenderer.invoke('execute-command', command),
+  selectFolder: () => ipcRenderer.invoke('select-folder'),
+  selectFile: () => ipcRenderer.invoke('select-file'),
+
+  // Google Drive
+  googleAuth: (credentials: any) => ipcRenderer.invoke('google-auth', credentials),
+  saveCredentials: (credentials: any) => ipcRenderer.invoke('save-credentials', credentials),
+  loadCredentials: () => ipcRenderer.invoke('load-credentials'),
+
+  // Event listeners
+  onDownloadProgress: (callback: (progress: number) => void) => {
+    ipcRenderer.on('download-progress', (_, progress) => callback(progress));
+  },
+});
