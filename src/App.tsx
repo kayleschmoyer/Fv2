@@ -1,24 +1,32 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TitleBar from './components/TitleBar';
 import PreInstallCheck from './components/PreInstallCheck';
 import GoogleAuth from './components/GoogleAuth';
 import InstallationSteps from './components/InstallationSteps';
 import { useInstallStore } from './store/installStore';
+import { useThemeStore } from './store/themeStore';
 
 function App() {
   const { currentStep } = useInstallStore();
+  const { theme, setTheme } = useThemeStore();
+
+  // Initialize theme on mount
+  useEffect(() => {
+    const savedTheme = useThemeStore.getState().theme;
+    document.documentElement.classList.add(savedTheme);
+  }, []);
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden">
+    <div className="h-screen w-screen flex flex-col overflow-hidden bg-light-bg dark:bg-dark-bg">
       {/* Custom Title Bar */}
       <TitleBar />
 
-      {/* Background Effects */}
+      {/* Background Effects - subtle gradient orbs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 -left-4 w-96 h-96 bg-ai-purple/30 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse-slow" />
-        <div className="absolute top-0 -right-4 w-96 h-96 bg-ai-pink/30 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse-slow animation-delay-2000" />
-        <div className="absolute -bottom-8 left-20 w-96 h-96 bg-ai-cyan/30 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse-slow animation-delay-4000" />
+        <div className="absolute top-0 -left-4 w-96 h-96 bg-ensight-blue/20 dark:bg-ensight-blue/30 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse-slow" />
+        <div className="absolute top-0 -right-4 w-96 h-96 bg-ensight-blue-light/20 dark:bg-ensight-blue-light/30 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse-slow animation-delay-2000" />
+        <div className="absolute -bottom-8 left-20 w-96 h-96 bg-ensight-blue-dark/20 dark:bg-ensight-blue-dark/30 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse-slow animation-delay-4000" />
       </div>
 
       {/* Main Content */}
@@ -66,7 +74,7 @@ function App() {
       </div>
 
       {/* Footer */}
-      <div className="relative z-10 p-4 text-center text-white/40 text-sm">
+      <div className="relative z-10 p-4 text-center text-light-text-tertiary dark:text-dark-text-tertiary text-sm">
         <p>FLIv2 Installer v1.0 • Powered by Ensight AI</p>
       </div>
     </div>

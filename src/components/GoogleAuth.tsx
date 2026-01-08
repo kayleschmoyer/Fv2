@@ -74,20 +74,20 @@ const GoogleAuth = () => {
         transition={{ duration: 0.5 }}
       >
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-ai-purple to-ai-pink mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-ensight mb-4 text-white">
             <Key size={32} />
           </div>
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-ai-purple to-ai-pink bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-ensight bg-clip-text text-transparent">
             Google Drive Access
           </h1>
-          <p className="text-white/60">
+          <p className="text-light-text-secondary dark:text-dark-text-secondary">
             Enter your Google credentials to download installation files
           </p>
         </div>
 
         <div className="space-y-6 mb-8">
           <div>
-            <label className="block text-sm font-medium mb-2 text-white/80">
+            <label className="block text-sm font-medium mb-2 text-light-text-secondary dark:text-dark-text-secondary">
               Email Address
             </label>
             <input
@@ -95,12 +95,12 @@ const GoogleAuth = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your.email@example.com"
-              className="w-full px-4 py-3 rounded-xl glass border border-white/10 focus:border-ai-purple focus:outline-none transition-colors text-white placeholder-white/30"
+              className="w-full px-4 py-3 rounded-xl glass border border-light-border dark:border-dark-border focus:border-ensight-blue focus:outline-none transition-colors text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-white/80">
+            <label className="block text-sm font-medium mb-2 text-light-text-secondary dark:text-dark-text-secondary">
               Password
             </label>
             <input
@@ -108,7 +108,7 @@ const GoogleAuth = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-xl glass border border-white/10 focus:border-ai-purple focus:outline-none transition-colors text-white placeholder-white/30"
+              className="w-full px-4 py-3 rounded-xl glass border border-light-border dark:border-dark-border focus:border-ensight-blue focus:outline-none transition-colors text-light-text dark:text-dark-text placeholder-light-text-tertiary dark:placeholder-dark-text-tertiary"
             />
           </div>
 
@@ -118,18 +118,18 @@ const GoogleAuth = () => {
               id="save-credentials"
               checked={saveCredentials}
               onChange={(e) => setSaveCredentials(e.target.checked)}
-              className="w-5 h-5 rounded border-white/20 text-ai-purple focus:ring-ai-purple focus:ring-offset-0"
+              className="w-5 h-5 rounded border-light-border dark:border-dark-border text-ensight-blue focus:ring-ensight-blue focus:ring-offset-0"
             />
             <label htmlFor="save-credentials" className="flex items-center space-x-2 cursor-pointer flex-1">
-              <Save size={18} className="text-white/60" />
-              <span className="text-white/80">Save credentials for future use</span>
+              <Save size={18} className="text-light-text-secondary dark:text-dark-text-secondary" />
+              <span className="text-light-text-secondary dark:text-dark-text-secondary">Save credentials for future use</span>
             </label>
           </div>
 
           <div className="glass p-4 rounded-xl border-l-4 border-yellow-500">
             <div className="flex items-start space-x-3">
               <AlertCircle className="text-yellow-500 flex-shrink-0 mt-0.5" size={20} />
-              <div className="text-sm text-white/70">
+              <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
                 <p className="font-medium mb-1">Note about Google Drive access:</p>
                 <p>
                   This installer needs access to Google Drive to download required files.
