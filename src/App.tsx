@@ -18,7 +18,7 @@ function App() {
   }, []);
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col overflow-x-hidden bg-light-bg dark:bg-dark-bg">
+    <div className="relative h-screen w-full flex flex-col overflow-hidden bg-light-bg dark:bg-dark-bg">
       {/* Custom Title Bar */}
       <TitleBar />
 

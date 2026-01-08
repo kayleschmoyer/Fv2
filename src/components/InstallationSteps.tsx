@@ -40,7 +40,7 @@ const InstallationSteps = () => {
   const overallProgress = totalEnabledSteps > 0 ? (completedSteps / totalEnabledSteps) * 100 : 0;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full min-h-0 flex flex-col">
       {/* Header */}
       <div className="glass p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
