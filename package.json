@@ -1,6 +1,7 @@
 {
   "name": "fliv2-installer",
   "version": "1.0.0",
+  "type": "module",
   "description": "Modern installer for FLIv2 with automated setup",
   "main": "dist/electron/main.js",
   "scripts": {
