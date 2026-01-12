@@ -9,8 +9,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // File system operations
   createDirectory: (path: string) => ipcRenderer.invoke('create-directory', path),
   checkPathExists: (path: string) => ipcRenderer.invoke('check-path-exists', path),
-  downloadFile: (url: string, destination: string) =>
-    ipcRenderer.invoke('download-file', { url, destination }),
+  downloadFile: (url: string, destination: string, username?: string, password?: string) =>
+    ipcRenderer.invoke('download-file', { url, destination, username, password }),
   copyFile: (source: string, destination: string) =>
     ipcRenderer.invoke('copy-file', { source, destination }),
   moveFile: (source: string, destination: string) =>
@@ -19,12 +19,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectFolder: () => ipcRenderer.invoke('select-folder'),
   selectFile: () => ipcRenderer.invoke('select-file'),
 
+  // Authentication
+  promptCredentials: (url: string) => ipcRenderer.invoke('prompt-credentials', { url }),
+  credentialResponse: (response: any) => ipcRenderer.send('credential-response', response),
+
   // Google Drive
   googleAuth: () => ipcRenderer.invoke('google-auth'),
-  downloadFromDrive: (fileId: string, destination: string) =>
-    ipcRenderer.invoke('download-from-drive', { fileId, destination }),
-  saveCredentials: (credentials: any) => ipcRenderer.invoke('save-credentials', credentials),
-  loadCredentials: () => ipcRenderer.invoke('load-credentials'),
+  downloadFromDrive: (fileId: string, destination: string, tokens?: any) =>
+    ipcRenderer.invoke('download-from-drive', { fileId, destination, tokens }),
 
   // Event listeners
   onDownloadProgress: (callback: (progress: number) => void) => {

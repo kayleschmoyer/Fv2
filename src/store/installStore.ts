@@ -24,11 +24,6 @@ interface InstallStore {
   preCheckItems: PreCheckItem[];
   updatePreCheckItem: (id: string, checked: boolean) => void;
 
-  googleCredentials: any;
-  setGoogleCredentials: (credentials: any) => void;
-  saveCredentials: boolean;
-  setSaveCredentials: (save: boolean) => void;
-
   installSteps: InstallStep[];
   updateStepStatus: (
     id: string,
@@ -60,11 +55,6 @@ export const useInstallStore = create<InstallStore>((set) => ({
         item.id === id ? { ...item, checked } : item
       ),
     })),
-
-  googleCredentials: null,
-  setGoogleCredentials: (credentials) => set({ googleCredentials: credentials }),
-  saveCredentials: false,
-  setSaveCredentials: (save) => set({ saveCredentials: save }),
 
   installSteps: [
     {
