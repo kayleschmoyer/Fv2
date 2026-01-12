@@ -91,7 +91,7 @@ ipcMain.handle('download-file', async (_, { url, destination, username, password
       url,
       method: 'GET',
       responseType: 'stream',
-      onDownloadProgress: (progressEvent) => {
+      onDownloadProgress: (progressEvent: any) => {
         const percentCompleted = Math.round(
           (progressEvent.loaded * 100) / (progressEvent.total || 1)
         );
@@ -311,7 +311,7 @@ ipcMain.handle('google-auth', async () => {
 
     // Handle the redirect
     return new Promise((resolve, reject) => {
-      authWindow.webContents.on('will-redirect', async (event, url) => {
+      authWindow.webContents.on('will-redirect', async (event: any, url: string) => {
         if (url.startsWith('http://localhost:3000/oauth2callback')) {
           const urlParams = new URL(url).searchParams;
           const code = urlParams.get('code');
