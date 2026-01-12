@@ -50,6 +50,46 @@ A modern, high-tech installer application for FLIv2 with automated setup, built 
 
    The installer will be created in the `release` directory.
 
+### Google OAuth Setup
+
+To enable Google Drive downloads, you need to configure OAuth2 credentials:
+
+1. **Create a Google Cloud Project**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select an existing one
+
+2. **Enable Google Drive API**
+   - Navigate to [APIs & Services > Library](https://console.cloud.google.com/apis/library)
+   - Search for "Google Drive API" and enable it
+
+3. **Create OAuth 2.0 Credentials**
+   - Go to [APIs & Services > Credentials](https://console.cloud.google.com/apis/credentials)
+   - Click "Create Credentials" → "OAuth 2.0 Client ID"
+   - If prompted, configure the OAuth consent screen:
+     - User Type: External (or Internal if using Google Workspace)
+     - Add app name, user support email, and developer contact
+     - Add scope: `https://www.googleapis.com/auth/drive.readonly`
+   - Choose "Desktop app" as the application type
+   - Add `http://localhost:3000/oauth2callback` as an authorized redirect URI
+   - Click "Create"
+
+4. **Configure Application**
+   - Copy the Client ID and Client Secret
+   - Create a `.env` file in the project root (already created if you followed installation steps)
+   - Replace the placeholder values:
+     ```
+     GOOGLE_CLIENT_ID=your_actual_client_id_here
+     GOOGLE_CLIENT_SECRET=your_actual_client_secret_here
+     ```
+
+5. **Restart the Application**
+   - After configuring the `.env` file, restart the development server or rebuild the app
+
+**Troubleshooting:**
+- **Error 401: invalid_client** - Verify your Client ID and Client Secret are correct in `.env`
+- **OAuth client was not found** - Ensure the credentials exist in Google Cloud Console and haven't been deleted
+- **Redirect URI mismatch** - Verify `http://localhost:3000/oauth2callback` is added as an authorized redirect URI
+
 ## 📁 Project Structure
 
 ```

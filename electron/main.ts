@@ -281,14 +281,40 @@ ipcMain.handle('prompt-credentials', async (_, { url }: any) => {
 // Google Drive authentication and download
 ipcMain.handle('google-auth', async () => {
   try {
+    // Validate OAuth credentials are configured
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+    const isPlaceholder = (value: string | undefined) => {
+      return !value ||
+             value === 'YOUR_CLIENT_ID' ||
+             value === 'YOUR_CLIENT_SECRET' ||
+             value === 'your_client_id_here' ||
+             value === 'your_client_secret_here';
+    };
+
+    if (isPlaceholder(clientId) || isPlaceholder(clientSecret)) {
+      return {
+        success: false,
+        message: 'OAuth credentials not configured. Please follow the setup instructions:\n\n' +
+                 '1. Go to https://console.cloud.google.com/\n' +
+                 '2. Create OAuth 2.0 credentials (Desktop app)\n' +
+                 '3. Add http://localhost:3000/oauth2callback as redirect URI\n' +
+                 '4. Update the .env file with your Client ID and Client Secret\n' +
+                 '5. Restart the application\n\n' +
+                 'See README.md for detailed instructions.',
+        needsConfig: true
+      };
+    }
+
     // Import google auth library
     const { google } = require('googleapis');
     const { BrowserWindow } = require('electron');
 
     // OAuth2 configuration
     const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID',
-      process.env.GOOGLE_CLIENT_SECRET || 'YOUR_CLIENT_SECRET',
+      clientId,
+      clientSecret,
       'http://localhost:3000/oauth2callback'
     );
 
@@ -345,6 +371,26 @@ ipcMain.handle('google-auth', async () => {
 // Download file from Google Drive
 ipcMain.handle('download-from-drive', async (_, { fileId, destination, tokens }: any) => {
   try {
+    // Validate OAuth credentials are configured
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+    const isPlaceholder = (value: string | undefined) => {
+      return !value ||
+             value === 'YOUR_CLIENT_ID' ||
+             value === 'YOUR_CLIENT_SECRET' ||
+             value === 'your_client_id_here' ||
+             value === 'your_client_secret_here';
+    };
+
+    if (isPlaceholder(clientId) || isPlaceholder(clientSecret)) {
+      return {
+        success: false,
+        message: 'OAuth credentials not configured. Please update the .env file and restart the application.',
+        needsConfig: true
+      };
+    }
+
     const { google } = require('googleapis');
 
     // Check if tokens are provided
@@ -353,8 +399,8 @@ ipcMain.handle('download-from-drive', async (_, { fileId, destination, tokens }:
     }
 
     const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID',
-      process.env.GOOGLE_CLIENT_SECRET || 'YOUR_CLIENT_SECRET',
+      clientId,
+      clientSecret,
       'http://localhost:3000/oauth2callback'
     );
     oauth2Client.setCredentials(tokens);
