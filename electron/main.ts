@@ -162,9 +162,69 @@ ipcMain.handle('select-file', async () => {
 
 // Google Drive authentication and download
 ipcMain.handle('google-auth', async () => {
-  // This will be implemented with Google OAuth2
-  // For now, we'll use direct download links
-  return { success: true, message: 'Authentication successful' };
+  try {
+    // Import google auth library
+    const { google } = require('googleapis');
+    const { BrowserWindow } = require('electron');
+
+    // OAuth2 configuration
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID',
+      process.env.GOOGLE_CLIENT_SECRET || 'YOUR_CLIENT_SECRET',
+      'http://localhost:3000/oauth2callback'
+    );
+
+    // Generate auth URL
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: ['https://www.googleapis.com/auth/drive.readonly'],
+    });
+
+    // Create auth window
+    const authWindow = new BrowserWindow({
+      width: 500,
+      height: 600,
+      show: true,
+      webPreferences: {
+        nodeIntegration: false,
+      },
+    });
+
+    authWindow.loadURL(authUrl);
+
+    // Handle the redirect
+    return new Promise((resolve, reject) => {
+      authWindow.webContents.on('will-redirect', async (event, url) => {
+        if (url.startsWith('http://localhost:3000/oauth2callback')) {
+          const urlParams = new URL(url).searchParams;
+          const code = urlParams.get('code');
+
+          if (code) {
+            try {
+              const { tokens } = await oauth2Client.getToken(code);
+              oauth2Client.setCredentials(tokens);
+
+              // Save tokens
+              const configPath = path.join(app.getPath('userData'), 'google-tokens.json');
+              fs.writeFileSync(configPath, JSON.stringify(tokens));
+
+              authWindow.close();
+              resolve({ success: true, tokens });
+            } catch (error: any) {
+              authWindow.close();
+              reject({ success: false, message: error.message });
+            }
+          }
+        }
+      });
+
+      authWindow.on('closed', () => {
+        reject({ success: false, message: 'Authentication cancelled' });
+      });
+    });
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
 });
 
 ipcMain.handle('save-credentials', async (_, credentials: any) => {
@@ -185,6 +245,45 @@ ipcMain.handle('load-credentials', async () => {
       return { success: true, credentials: JSON.parse(data) };
     }
     return { success: false, message: 'No saved credentials found' };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+});
+
+// Download file from Google Drive
+ipcMain.handle('download-from-drive', async (_, { fileId, destination }: any) => {
+  try {
+    const { google } = require('googleapis');
+
+    // Load saved tokens
+    const tokensPath = path.join(app.getPath('userData'), 'google-tokens.json');
+    if (!fs.existsSync(tokensPath)) {
+      return { success: false, message: 'Not authenticated. Please authenticate first.' };
+    }
+
+    const tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf-8'));
+
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID',
+      process.env.GOOGLE_CLIENT_SECRET || 'YOUR_CLIENT_SECRET',
+      'http://localhost:3000/oauth2callback'
+    );
+    oauth2Client.setCredentials(tokens);
+
+    const drive = google.drive({ version: 'v3', auth: oauth2Client });
+
+    const dest = fs.createWriteStream(destination);
+    const response = await drive.files.get(
+      { fileId, alt: 'media' },
+      { responseType: 'stream' }
+    );
+
+    return new Promise((resolve, reject) => {
+      response.data
+        .on('end', () => resolve({ success: true }))
+        .on('error', (err: any) => reject({ success: false, message: err.message }))
+        .pipe(dest);
+    });
   } catch (error: any) {
     return { success: false, message: error.message };
   }

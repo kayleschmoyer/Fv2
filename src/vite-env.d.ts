@@ -13,7 +13,8 @@ interface Window {
     executeCommand: (command: string) => Promise<{ success: boolean; stdout?: string; stderr?: string; message?: string }>;
     selectFolder: () => Promise<string | null>;
     selectFile: () => Promise<string | null>;
-    googleAuth: (credentials: any) => Promise<{ success: boolean; message: string }>;
+    googleAuth: () => Promise<{ success: boolean; message?: string; tokens?: any }>;
+    downloadFromDrive: (fileId: string, destination: string) => Promise<{ success: boolean; message?: string }>;
     saveCredentials: (credentials: any) => Promise<{ success: boolean; message?: string }>;
     loadCredentials: () => Promise<{ success: boolean; credentials?: any; message?: string }>;
     onDownloadProgress: (callback: (progress: number) => void) => void;

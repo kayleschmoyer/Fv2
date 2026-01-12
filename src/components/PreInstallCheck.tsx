@@ -8,7 +8,7 @@ const PreInstallCheck = () => {
 
   const handleNext = () => {
     if (allChecked) {
-      setCurrentStep('auth');
+      setCurrentStep('install');
     }
   };
 
