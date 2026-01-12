@@ -20,7 +20,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectFile: () => ipcRenderer.invoke('select-file'),
 
   // Google Drive
-  googleAuth: (credentials: any) => ipcRenderer.invoke('google-auth', credentials),
+  googleAuth: () => ipcRenderer.invoke('google-auth'),
+  downloadFromDrive: (fileId: string, destination: string) =>
+    ipcRenderer.invoke('download-from-drive', { fileId, destination }),
   saveCredentials: (credentials: any) => ipcRenderer.invoke('save-credentials', credentials),
   loadCredentials: () => ipcRenderer.invoke('load-credentials'),
 

@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TitleBar from './components/TitleBar';
 import PreInstallCheck from './components/PreInstallCheck';
-import GoogleAuth from './components/GoogleAuth';
 import InstallationSteps from './components/InstallationSteps';
 import { useInstallStore } from './store/installStore';
 import { useThemeStore } from './store/themeStore';
@@ -46,19 +45,6 @@ function App() {
               className="w-full max-w-4xl"
             >
               <PreInstallCheck />
-            </motion.div>
-          )}
-
-          {currentStep === 'auth' && (
-            <motion.div
-              key="auth"
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 50 }}
-              transition={{ duration: 0.3 }}
-              className="w-full max-w-4xl"
-            >
-              <GoogleAuth />
             </motion.div>
           )}
 
