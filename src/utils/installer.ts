@@ -1,10 +1,10 @@
 import { useInstallStore } from '../store/installStore';
 
-// Google Drive file IDs (these would be the actual file IDs from your Google Drive links)
+// Google Drive file IDs (extracted from Google Drive links)
 const DRIVE_FILES = {
-  extraDlls: 'REPLACE_WITH_ACTUAL_FILE_ID', // From the DLL zip link
-  tensorRtTools: '1SHbHNGEv0Qn3xiMZqvENkD_L4UvofnKQ', // From your instructions
-  onnxModels: 'REPLACE_WITH_ACTUAL_FILE_ID', // Latest datature-yolo8m
+  extraDlls: '1srqV8YE7VKI3Ibtk8jLc6Xoq-7Vq73Oi', // DLL zip file
+  tensorRtTools: '1SHbHNGEv0Qn3xiMZqvENkD_L4UvofnKQ', // TensorRT tools
+  onnxModels: '1N783bwh6BidTxEgkkGQqQKsg0cGg0eeo', // ONNX models folder
   fliv2Msi: 'REPLACE_WITH_ACTUAL_FILE_ID', // Latest FLIv2 MSI
   fliv2Viewer: 'REPLACE_WITH_ACTUAL_FILE_ID', // FLIv2 Viewer
 };
@@ -41,14 +41,11 @@ export const runInstallation = async () => {
         case 'place-camera-config':
           await placeCameraConfig();
           break;
-        case 'download-dlls':
-          await downloadExtraDlls();
-          break;
         case 'create-fliv2-dir':
           await createFLIv2Directory();
           break;
-        case 'place-dlls':
-          await placeDlls();
+        case 'download-dlls':
+          await downloadExtraDlls();
           break;
         case 'create-models-dir':
           await createModelsDirectory();
@@ -111,31 +108,42 @@ async function placeCameraConfig() {
 async function downloadExtraDlls() {
   const { updateStepStatus } = useInstallStore.getState();
 
-  // For now, prompt user to select the downloaded DLL zip
-  updateStepStatus('download-dlls', 'running', 50, 'Please select the DLL zip file...');
+  // Prompt for Google credentials
+  updateStepStatus('download-dlls', 'running', 10, 'Authenticating with Google Drive...');
+  const authResult = await window.electronAPI.googleAuth();
 
-  const selectedFile = await window.electronAPI.selectFile();
-  if (!selectedFile) throw new Error('No DLL zip selected');
+  if (!authResult.success) {
+    throw new Error('Google authentication failed: ' + authResult.message);
+  }
 
-  // In a full implementation, we would extract the zip here
-  // For now, we'll just note its location
-  updateStepStatus('download-dlls', 'running', 100, 'DLL package located');
+  // Download DLL zip from Google Drive
+  updateStepStatus('download-dlls', 'running', 30, 'Downloading DLL package...');
+  const tempZipPath = `${PATHS.programFiles}\\temp-dlls.zip`;
+
+  const downloadResult = await window.electronAPI.downloadFromDrive(
+    DRIVE_FILES.extraDlls,
+    tempZipPath,
+    authResult.tokens
+  );
+
+  if (!downloadResult.success) {
+    throw new Error('Failed to download DLLs: ' + downloadResult.message);
+  }
+
+  // Extract ZIP to FLIv2 directory
+  updateStepStatus('download-dlls', 'running', 70, 'Extracting DLL package...');
+  const extractResult = await window.electronAPI.extractZip(tempZipPath, PATHS.programFiles);
+
+  if (!extractResult.success) {
+    throw new Error('Failed to extract DLLs: ' + extractResult.message);
+  }
+
+  updateStepStatus('download-dlls', 'running', 100, 'DLLs downloaded and extracted successfully');
 }
 
 async function createFLIv2Directory() {
   const result = await window.electronAPI.createDirectory(PATHS.programFiles);
   if (!result.success) throw new Error(result.message);
-}
-
-async function placeDlls() {
-  const { updateStepStatus } = useInstallStore.getState();
-  updateStepStatus('place-dlls', 'running', 50, 'Please select the DLL folder...');
-
-  const selectedFolder = await window.electronAPI.selectFolder();
-  if (!selectedFolder) throw new Error('No DLL folder selected');
-
-  // Copy all files from selected folder to program files
-  updateStepStatus('place-dlls', 'running', 100, 'DLLs placed successfully');
 }
 
 async function createModelsDirectory() {
@@ -146,29 +154,68 @@ async function createModelsDirectory() {
 
 async function downloadOnnxModels() {
   const { updateStepStatus } = useInstallStore.getState();
-  updateStepStatus('download-models', 'running', 50, 'Please select the ONNX model file...');
 
-  const selectedFile = await window.electronAPI.selectFile();
-  if (!selectedFile) throw new Error('No ONNX model selected');
+  // Authenticate with Google Drive (reuse tokens from DLL download if available)
+  updateStepStatus('download-models', 'running', 10, 'Authenticating with Google Drive...');
+  const authResult = await window.electronAPI.googleAuth();
 
-  // Copy to models directory
-  const fileName = selectedFile.split('\\').pop();
-  const destination = `${PATHS.modelsOnnx}\\${fileName}`;
-  const result = await window.electronAPI.copyFile(selectedFile, destination);
-  if (!result.success) throw new Error(result.message);
+  if (!authResult.success) {
+    throw new Error('Google authentication failed: ' + authResult.message);
+  }
+
+  // NOTE: The ONNX file ID points to a folder. This downloads the first file.
+  // If multiple files need to be downloaded, implement folder listing logic.
+  updateStepStatus('download-models', 'running', 30, 'Downloading ONNX model...');
+  const onnxFileName = 'model.onnx';
+  const destination = `${PATHS.modelsOnnx}\\${onnxFileName}`;
+
+  const downloadResult = await window.electronAPI.downloadFromDrive(
+    DRIVE_FILES.onnxModels,
+    destination,
+    authResult.tokens
+  );
+
+  if (!downloadResult.success) {
+    throw new Error('Failed to download ONNX model: ' + downloadResult.message);
+  }
+
+  updateStepStatus('download-models', 'running', 100, 'ONNX model downloaded successfully');
 }
 
 async function downloadTensorRTTools() {
   const { updateStepStatus } = useInstallStore.getState();
-  updateStepStatus(
-    'download-tensorrt-tools',
-    'running',
-    50,
-    'Please select the TensorRT tools folder...'
+
+  // Authenticate with Google Drive
+  updateStepStatus('download-tensorrt-tools', 'running', 10, 'Authenticating with Google Drive...');
+  const authResult = await window.electronAPI.googleAuth();
+
+  if (!authResult.success) {
+    throw new Error('Google authentication failed: ' + authResult.message);
+  }
+
+  // Download TensorRT tools ZIP from Google Drive
+  updateStepStatus('download-tensorrt-tools', 'running', 30, 'Downloading TensorRT tools...');
+  const tempZipPath = `${PATHS.tensorRtBuildTools}\\temp-tensorrt-tools.zip`;
+
+  const downloadResult = await window.electronAPI.downloadFromDrive(
+    DRIVE_FILES.tensorRtTools,
+    tempZipPath,
+    authResult.tokens
   );
 
-  const selectedFolder = await window.electronAPI.selectFolder();
-  if (!selectedFolder) throw new Error('No TensorRT tools folder selected');
+  if (!downloadResult.success) {
+    throw new Error('Failed to download TensorRT tools: ' + downloadResult.message);
+  }
+
+  // Extract ZIP to TensorRT build tools directory
+  updateStepStatus('download-tensorrt-tools', 'running', 70, 'Extracting TensorRT tools...');
+  const extractResult = await window.electronAPI.extractZip(tempZipPath, PATHS.tensorRtBuildTools);
+
+  if (!extractResult.success) {
+    throw new Error('Failed to extract TensorRT tools: ' + extractResult.message);
+  }
+
+  updateStepStatus('download-tensorrt-tools', 'running', 100, 'TensorRT tools downloaded and extracted successfully');
 }
 
 async function buildTensorRTModel() {

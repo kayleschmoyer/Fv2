@@ -18,6 +18,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   executeCommand: (command: string) => ipcRenderer.invoke('execute-command', command),
   selectFolder: () => ipcRenderer.invoke('select-folder'),
   selectFile: () => ipcRenderer.invoke('select-file'),
+  extractZip: (zipPath: string, extractTo: string) =>
+    ipcRenderer.invoke('extract-zip', { zipPath, extractTo }),
 
   // Authentication
   promptCredentials: (url: string) => ipcRenderer.invoke('prompt-credentials', { url }),

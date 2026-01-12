@@ -72,13 +72,6 @@ export const useInstallStore = create<InstallStore>((set) => ({
       enabled: true,
     },
     {
-      id: 'download-dlls',
-      title: 'Download Extra DLLs',
-      description: 'Download and extract DLL package',
-      status: 'pending',
-      enabled: true,
-    },
-    {
       id: 'create-fliv2-dir',
       title: 'Create FLIv2 Directory',
       description: 'Create C:\\Program Files\\Ensight\\FLIv2 folder',
@@ -86,9 +79,9 @@ export const useInstallStore = create<InstallStore>((set) => ({
       enabled: true,
     },
     {
-      id: 'place-dlls',
-      title: 'Place DLLs',
-      description: 'Move DLLs to C:\\Program Files\\Ensight\\FLIv2',
+      id: 'download-dlls',
+      title: 'Download and Extract DLLs',
+      description: 'Download DLL package from Google Drive and extract to FLIv2 folder',
       status: 'pending',
       enabled: true,
     },
