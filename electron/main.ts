@@ -85,9 +85,9 @@ ipcMain.handle('check-path-exists', async (_, filePath: string) => {
   return fs.existsSync(filePath);
 });
 
-ipcMain.handle('download-file', async (_, { url, destination }: any) => {
+ipcMain.handle('download-file', async (_, { url, destination, username, password }: any) => {
   try {
-    const response = await axios({
+    const config: any = {
       url,
       method: 'GET',
       responseType: 'stream',
@@ -97,7 +97,17 @@ ipcMain.handle('download-file', async (_, { url, destination }: any) => {
         );
         mainWindow?.webContents.send('download-progress', percentCompleted);
       },
-    });
+    };
+
+    // Add basic auth if credentials are provided
+    if (username && password) {
+      config.auth = {
+        username,
+        password,
+      };
+    }
+
+    const response = await axios(config);
 
     const writer = fs.createWriteStream(destination);
     response.data.pipe(writer);
@@ -107,6 +117,10 @@ ipcMain.handle('download-file', async (_, { url, destination }: any) => {
       writer.on('error', (error) => reject({ success: false, message: error.message }));
     });
   } catch (error: any) {
+    // Check if error is due to authentication
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      return { success: false, message: 'Authentication required', needsAuth: true };
+    }
     return { success: false, message: error.message };
   }
 });
@@ -160,6 +174,109 @@ ipcMain.handle('select-file', async () => {
   return result.filePaths[0];
 });
 
+// Prompt for credentials when needed
+ipcMain.handle('prompt-credentials', async (_, { url }: any) => {
+  try {
+    // Create a modal window for credential input
+    const credWindow = new BrowserWindow({
+      width: 400,
+      height: 250,
+      parent: mainWindow!,
+      modal: true,
+      show: false,
+      frame: false,
+      backgroundColor: '#0F0F1E',
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: path.join(__dirname, 'preload.cjs'),
+      },
+    });
+
+    // Load a simple HTML form for credentials
+    const credHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body {
+              margin: 0;
+              padding: 20px;
+              font-family: Arial, sans-serif;
+              background: #0F0F1E;
+              color: white;
+            }
+            h3 { margin-top: 0; font-size: 16px; }
+            .url { font-size: 12px; color: #888; margin-bottom: 20px; word-break: break-all; }
+            input {
+              width: 100%;
+              padding: 8px;
+              margin: 8px 0;
+              background: #1a1a2e;
+              border: 1px solid #333;
+              color: white;
+              border-radius: 4px;
+              box-sizing: border-box;
+            }
+            .buttons {
+              margin-top: 20px;
+              display: flex;
+              gap: 10px;
+              justify-content: flex-end;
+            }
+            button {
+              padding: 8px 16px;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+            }
+            .ok { background: #4CAF50; color: white; }
+            .cancel { background: #f44336; color: white; }
+          </style>
+        </head>
+        <body>
+          <h3>Authentication Required</h3>
+          <div class="url">${url}</div>
+          <input type="text" id="username" placeholder="Username" autofocus />
+          <input type="password" id="password" placeholder="Password" />
+          <div class="buttons">
+            <button class="cancel" onclick="window.electronAPI.credentialResponse({ cancelled: true })">Cancel</button>
+            <button class="ok" onclick="submitCredentials()">OK</button>
+          </div>
+          <script>
+            function submitCredentials() {
+              const username = document.getElementById('username').value;
+              const password = document.getElementById('password').value;
+              window.electronAPI.credentialResponse({ username, password });
+            }
+            document.getElementById('password').addEventListener('keypress', (e) => {
+              if (e.key === 'Enter') submitCredentials();
+            });
+          </script>
+        </body>
+      </html>
+    `;
+
+    credWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(credHtml));
+    credWindow.once('ready-to-show', () => {
+      credWindow.show();
+    });
+
+    return new Promise((resolve) => {
+      ipcMain.once('credential-response', (_, response) => {
+        credWindow.close();
+        resolve(response);
+      });
+
+      credWindow.on('closed', () => {
+        resolve({ cancelled: true });
+      });
+    });
+  } catch (error: any) {
+    return { cancelled: true, error: error.message };
+  }
+});
+
 // Google Drive authentication and download
 ipcMain.handle('google-auth', async () => {
   try {
@@ -204,10 +321,6 @@ ipcMain.handle('google-auth', async () => {
               const { tokens } = await oauth2Client.getToken(code);
               oauth2Client.setCredentials(tokens);
 
-              // Save tokens
-              const configPath = path.join(app.getPath('userData'), 'google-tokens.json');
-              fs.writeFileSync(configPath, JSON.stringify(tokens));
-
               authWindow.close();
               resolve({ success: true, tokens });
             } catch (error: any) {
@@ -227,41 +340,16 @@ ipcMain.handle('google-auth', async () => {
   }
 });
 
-ipcMain.handle('save-credentials', async (_, credentials: any) => {
-  try {
-    const configPath = path.join(app.getPath('userData'), 'credentials.json');
-    fs.writeFileSync(configPath, JSON.stringify(credentials));
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error.message };
-  }
-});
-
-ipcMain.handle('load-credentials', async () => {
-  try {
-    const configPath = path.join(app.getPath('userData'), 'credentials.json');
-    if (fs.existsSync(configPath)) {
-      const data = fs.readFileSync(configPath, 'utf-8');
-      return { success: true, credentials: JSON.parse(data) };
-    }
-    return { success: false, message: 'No saved credentials found' };
-  } catch (error: any) {
-    return { success: false, message: error.message };
-  }
-});
 
 // Download file from Google Drive
-ipcMain.handle('download-from-drive', async (_, { fileId, destination }: any) => {
+ipcMain.handle('download-from-drive', async (_, { fileId, destination, tokens }: any) => {
   try {
     const { google } = require('googleapis');
 
-    // Load saved tokens
-    const tokensPath = path.join(app.getPath('userData'), 'google-tokens.json');
-    if (!fs.existsSync(tokensPath)) {
-      return { success: false, message: 'Not authenticated. Please authenticate first.' };
+    // Check if tokens are provided
+    if (!tokens) {
+      return { success: false, message: 'Not authenticated. Please authenticate first.', needsAuth: true };
     }
-
-    const tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf-8'));
 
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID',
@@ -285,6 +373,10 @@ ipcMain.handle('download-from-drive', async (_, { fileId, destination }: any) =>
         .pipe(dest);
     });
   } catch (error: any) {
+    // Check if error is due to authentication
+    if (error.code === 401 || error.code === 403) {
+      return { success: false, message: error.message, needsAuth: true };
+    }
     return { success: false, message: error.message };
   }
 });

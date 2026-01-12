@@ -7,16 +7,16 @@ interface Window {
     closeWindow: () => void;
     createDirectory: (path: string) => Promise<{ success: boolean; message?: string }>;
     checkPathExists: (path: string) => Promise<boolean>;
-    downloadFile: (url: string, destination: string) => Promise<{ success: boolean; message?: string }>;
+    downloadFile: (url: string, destination: string, username?: string, password?: string) => Promise<{ success: boolean; message?: string; needsAuth?: boolean }>;
     copyFile: (source: string, destination: string) => Promise<{ success: boolean; message?: string }>;
     moveFile: (source: string, destination: string) => Promise<{ success: boolean; message?: string }>;
     executeCommand: (command: string) => Promise<{ success: boolean; stdout?: string; stderr?: string; message?: string }>;
     selectFolder: () => Promise<string | null>;
     selectFile: () => Promise<string | null>;
+    promptCredentials: (url: string) => Promise<{ username?: string; password?: string; cancelled?: boolean; error?: string }>;
+    credentialResponse: (response: any) => void;
     googleAuth: () => Promise<{ success: boolean; message?: string; tokens?: any }>;
-    downloadFromDrive: (fileId: string, destination: string) => Promise<{ success: boolean; message?: string }>;
-    saveCredentials: (credentials: any) => Promise<{ success: boolean; message?: string }>;
-    loadCredentials: () => Promise<{ success: boolean; credentials?: any; message?: string }>;
+    downloadFromDrive: (fileId: string, destination: string, tokens?: any) => Promise<{ success: boolean; message?: string; needsAuth?: boolean }>;
     onDownloadProgress: (callback: (progress: number) => void) => void;
   };
 }
