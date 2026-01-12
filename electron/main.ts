@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import axios from 'axios';
+import AdmZip from 'adm-zip';
 
 const execAsync = promisify(exec);
 
@@ -377,6 +378,17 @@ ipcMain.handle('download-from-drive', async (_, { fileId, destination, tokens }:
     if (error.code === 401 || error.code === 403) {
       return { success: false, message: error.message, needsAuth: true };
     }
+    return { success: false, message: error.message };
+  }
+});
+
+// Extract ZIP file
+ipcMain.handle('extract-zip', async (_, { zipPath, extractTo }: any) => {
+  try {
+    const zip = new AdmZip(zipPath);
+    zip.extractAllTo(extractTo, true);
+    return { success: true, message: `Extracted to ${extractTo}` };
+  } catch (error: any) {
     return { success: false, message: error.message };
   }
 });
