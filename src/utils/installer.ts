@@ -165,8 +165,7 @@ async function downloadOnnxModels() {
 
   // If the ONNX file ID points to a folder/shortcut, downloadFromDrive will resolve a .onnx file.
   updateStepStatus('download-models', 'running', 30, 'Downloading ONNX model...');
-  const onnxFileName = 'model.onnx';
-  const destination = `${PATHS.modelsOnnx}\\${onnxFileName}`;
+  const destination = PATHS.modelsOnnx;
 
   const downloadResult = await window.electronAPI.downloadFromDrive(
     DRIVE_FILES.onnxModels,
@@ -178,7 +177,8 @@ async function downloadOnnxModels() {
     throw new Error('Failed to download ONNX model: ' + downloadResult.message);
   }
 
-  updateStepStatus('download-models', 'running', 100, 'ONNX model downloaded successfully');
+  const downloadedName = downloadResult.fileName || 'ONNX model';
+  updateStepStatus('download-models', 'running', 100, `${downloadedName} downloaded successfully`);
 }
 
 async function downloadTensorRTTools() {
@@ -223,12 +223,11 @@ async function buildTensorRTModel() {
   // Find the ONNX model file
   updateStepStatus('build-tensorrt', 'running', 25, 'Locating ONNX model...');
 
-  const defaultOnnxPath = `${PATHS.modelsOnnx}\\model.onnx`;
-  const defaultOnnxExists = await window.electronAPI.checkPathExists(defaultOnnxPath);
+  const latestOnnxResult = await window.electronAPI.findLatestOnnx(PATHS.modelsOnnx);
 
   // Get the model filename
-  let selectedFile = defaultOnnxPath;
-  if (!defaultOnnxExists) {
+  let selectedFile = latestOnnxResult.success ? latestOnnxResult.filePath : null;
+  if (!selectedFile) {
     updateStepStatus('build-tensorrt', 'running', 30, 'Please select the ONNX model...');
     selectedFile = await window.electronAPI.selectFile();
     if (!selectedFile) throw new Error('No ONNX model selected');

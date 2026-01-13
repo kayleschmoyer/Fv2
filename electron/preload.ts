@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // File system operations
   createDirectory: (path: string) => ipcRenderer.invoke('create-directory', path),
   checkPathExists: (path: string) => ipcRenderer.invoke('check-path-exists', path),
+  findLatestOnnx: (path: string) => ipcRenderer.invoke('find-latest-onnx', path),
   downloadFile: (url: string, destination: string, username?: string, password?: string) =>
     ipcRenderer.invoke('download-file', { url, destination, username, password }),
   copyFile: (source: string, destination: string) =>
