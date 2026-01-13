@@ -39,6 +39,7 @@ Complete these manual steps:
    - TensorRT build tools
    - FLIv2 MSI installer
    - FLIv2 Viewer
+   - After extracting the FLIv2-dlls zip into `C:\Program Files\Ensight\FLIv2\FLIv2-dlls`, move all DLLs up one level into `C:\Program Files\Ensight\FLIv2`
 
 ### Running the Installer
 
@@ -92,7 +93,9 @@ Complete these manual steps:
 - Check installation logs
 
 ### TensorRT Build Fails
-- Ensure TensorRT tools are in correct location
+- Ensure TensorRT tools are in `C:\Ensight\FLI\Models\TensorRT\TensorRT-model-building-1013`
+- Confirm `trtexec.exe` exists in that folder (the installer runs it from there)
+- If `trtexec.exe` lives elsewhere, copy it into the build tools folder or add its directory to PATH
 - Verify ONNX model is valid
 - Check command prompt output for errors
 
