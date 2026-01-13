@@ -94,6 +94,30 @@ ipcMain.handle('check-path-exists', async (_, filePath: string) => {
   return fs.existsSync(filePath);
 });
 
+ipcMain.handle('find-latest-onnx', async (_, dirPath: string) => {
+  try {
+    const entries = await fs.promises.readdir(dirPath);
+    const onnxFiles = entries.filter((entry) => entry.toLowerCase().endsWith('.onnx'));
+
+    if (onnxFiles.length === 0) {
+      return { success: false, message: 'No .onnx files found.' };
+    }
+
+    const filesWithStats = await Promise.all(
+      onnxFiles.map(async (file) => {
+        const filePath = path.join(dirPath, file);
+        const stats = await fs.promises.stat(filePath);
+        return { file, filePath, mtimeMs: stats.mtimeMs };
+      })
+    );
+
+    filesWithStats.sort((a, b) => b.mtimeMs - a.mtimeMs);
+    return { success: true, filePath: filesWithStats[0].filePath, fileName: filesWithStats[0].file };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+});
+
 ipcMain.handle('download-file', async (_, { url, destination, username, password }: any) => {
   try {
     const config: any = {
@@ -401,12 +425,12 @@ ipcMain.handle('download-from-drive', async (_, { fileId, destination, tokens }:
 
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
-    const downloadStream = (stream: NodeJS.ReadableStream) =>
+    const downloadStream = (stream: NodeJS.ReadableStream, resolvedDestination: string) =>
       new Promise((resolve, reject) => {
         stream
-          .on('end', () => resolve({ success: true }))
+          .on('end', () => resolve({ success: true, destination: resolvedDestination }))
           .on('error', (err: any) => reject({ success: false, message: err.message }))
-          .pipe(fs.createWriteStream(destination));
+          .pipe(fs.createWriteStream(resolvedDestination));
       });
 
     const getFileMetadata = async (id: string) =>
@@ -433,13 +457,23 @@ ipcMain.handle('download-from-drive', async (_, { fileId, destination, tokens }:
     if (metadata.mimeType === 'application/vnd.google-apps.folder') {
       const listResponse = await drive.files.list({
         q: `'${metadata.id}' in parents and trashed=false`,
-        fields: 'files(id,name,mimeType)',
+        fields: 'files(id,name,mimeType,modifiedTime)',
         includeItemsFromAllDrives: true,
         supportsAllDrives: true,
+        orderBy: 'modifiedTime desc',
       });
-      const onnxFile = listResponse.data.files?.find((file: any) =>
-        file.name?.toLowerCase().endsWith('.onnx')
+      const onnxFiles =
+        listResponse.data.files?.filter(
+          (file: any) => file.name?.toLowerCase().endsWith('.onnx')
+        ) || [];
+      const datatureFiles = onnxFiles.filter((file: any) =>
+        file.name?.toLowerCase().includes('datature')
       );
+      const byModifiedTime = (a: any, b: any) =>
+        new Date(b.modifiedTime || 0).getTime() - new Date(a.modifiedTime || 0).getTime();
+      const sortedDatature = datatureFiles.sort(byModifiedTime);
+      const sortedOnnx = onnxFiles.sort(byModifiedTime);
+      const onnxFile = sortedDatature[0] || sortedOnnx[0];
       if (!onnxFile) {
         return {
           success: false,
@@ -462,7 +496,21 @@ ipcMain.handle('download-from-drive', async (_, { fileId, destination, tokens }:
       { responseType: 'stream' }
     );
 
-    return await downloadStream(response.data);
+    let resolvedDestination = destination;
+    try {
+      const destinationStat = await fs.promises.stat(destination);
+      if (destinationStat.isDirectory()) {
+        resolvedDestination = path.join(destination, metadata.name || 'model.onnx');
+      }
+    } catch (error: any) {
+      if (destination.endsWith(path.sep) || destination.endsWith('/')) {
+        await fs.promises.mkdir(destination, { recursive: true });
+        resolvedDestination = path.join(destination, metadata.name || 'model.onnx');
+      }
+    }
+
+    const downloadResult = await downloadStream(response.data, resolvedDestination);
+    return { ...downloadResult, fileName: metadata.name };
   } catch (error: any) {
     // Check if error is due to authentication
     if (error.code === 401 || error.code === 403) {
