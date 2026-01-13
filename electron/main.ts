@@ -425,8 +425,13 @@ ipcMain.handle('download-from-drive', async (_, { fileId, destination, tokens }:
 
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
-    const downloadStream = (stream: NodeJS.ReadableStream, resolvedDestination: string) =>
-      new Promise((resolve, reject) => {
+    type DownloadResult = { success: boolean; destination?: string; message?: string };
+
+    const downloadStream = (
+      stream: NodeJS.ReadableStream,
+      resolvedDestination: string
+    ): Promise<DownloadResult> =>
+      new Promise<DownloadResult>((resolve, reject) => {
         stream
           .on('end', () => resolve({ success: true, destination: resolvedDestination }))
           .on('error', (err: any) => reject({ success: false, message: err.message }))
@@ -531,6 +536,21 @@ ipcMain.handle('extract-zip', async (_, { zipPath, extractTo }: any) => {
         .on('close', () => resolve())
         .on('error', (error: any) => reject(error));
     });
+
+    const entries = await fs.promises.readdir(extractTo, { withFileTypes: true });
+    const topLevelDirs = entries.filter((entry) => entry.isDirectory());
+    const topLevelFiles = entries.filter((entry) => !entry.isDirectory());
+
+    if (topLevelDirs.length === 1 && topLevelFiles.length === 0) {
+      const nestedPath = path.join(extractTo, topLevelDirs[0].name);
+      const nestedEntries = await fs.promises.readdir(nestedPath);
+      await Promise.all(
+        nestedEntries.map((entry) =>
+          fs.promises.rename(path.join(nestedPath, entry), path.join(extractTo, entry))
+        )
+      );
+      await fs.promises.rmdir(nestedPath);
+    }
 
     return { success: true, message: `Extracted to ${extractTo}` };
   } catch (error: any) {
