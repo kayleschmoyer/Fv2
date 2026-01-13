@@ -163,8 +163,7 @@ async function downloadOnnxModels() {
     throw new Error('Google authentication failed: ' + authResult.message);
   }
 
-  // NOTE: The ONNX file ID points to a folder. This downloads the first file.
-  // If multiple files need to be downloaded, implement folder listing logic.
+  // If the ONNX file ID points to a folder/shortcut, downloadFromDrive will resolve a .onnx file.
   updateStepStatus('download-models', 'running', 30, 'Downloading ONNX model...');
   const onnxFileName = 'model.onnx';
   const destination = `${PATHS.modelsOnnx}\\${onnxFileName}`;

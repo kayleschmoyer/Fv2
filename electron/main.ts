@@ -401,18 +401,65 @@ ipcMain.handle('download-from-drive', async (_, { fileId, destination, tokens }:
 
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
-    const dest = fs.createWriteStream(destination);
+    const downloadStream = (stream: NodeJS.ReadableStream) =>
+      new Promise((resolve, reject) => {
+        stream
+          .on('end', () => resolve({ success: true }))
+          .on('error', (err: any) => reject({ success: false, message: err.message }))
+          .pipe(fs.createWriteStream(destination));
+      });
+
+    const getFileMetadata = async (id: string) =>
+      drive.files.get({
+        fileId: id,
+        fields: 'id,name,mimeType,shortcutDetails',
+      });
+
+    let resolvedFileId = fileId;
+    let metadataResponse = await getFileMetadata(resolvedFileId);
+    let metadata = metadataResponse.data;
+
+    if (metadata.mimeType === 'application/vnd.google-apps.shortcut') {
+      const targetId = metadata.shortcutDetails?.targetId;
+      if (!targetId) {
+        return { success: false, message: 'Drive shortcut is missing a target file.' };
+      }
+      metadataResponse = await getFileMetadata(targetId);
+      metadata = metadataResponse.data;
+      resolvedFileId = metadata.id;
+    }
+
+    if (metadata.mimeType === 'application/vnd.google-apps.folder') {
+      const listResponse = await drive.files.list({
+        q: `'${metadata.id}' in parents and trashed=false`,
+        fields: 'files(id,name,mimeType)',
+      });
+      const onnxFile = listResponse.data.files?.find((file: any) =>
+        file.name?.toLowerCase().endsWith('.onnx')
+      );
+      if (!onnxFile) {
+        return {
+          success: false,
+          message: `No .onnx file found in folder "${metadata.name}".`,
+        };
+      }
+      resolvedFileId = onnxFile.id;
+      metadata = onnxFile;
+    }
+
+    if (metadata.mimeType?.startsWith('application/vnd.google-apps')) {
+      return {
+        success: false,
+        message: `Drive file "${metadata.name}" is a Google Docs editor file (${metadata.mimeType}). Please provide a binary file ID.`,
+      };
+    }
+
     const response = await drive.files.get(
-      { fileId, alt: 'media' },
+      { fileId: resolvedFileId, alt: 'media' },
       { responseType: 'stream' }
     );
 
-    return new Promise((resolve, reject) => {
-      response.data
-        .on('end', () => resolve({ success: true }))
-        .on('error', (err: any) => reject({ success: false, message: err.message }))
-        .pipe(dest);
-    });
+    return await downloadStream(response.data);
   } catch (error: any) {
     // Check if error is due to authentication
     if (error.code === 401 || error.code === 403) {
