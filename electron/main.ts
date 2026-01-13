@@ -567,6 +567,20 @@ ipcMain.handle('extract-zip', async (_, { zipPath, extractTo }: any) => {
       await fs.promises.rmdir(nestedPath);
     }
 
+    const trtexecPath = path.join(extractTo, 'trtexec.exe');
+    if (!fs.existsSync(trtexecPath)) {
+      const refreshedEntries = await fs.promises.readdir(extractTo, { withFileTypes: true });
+      const candidateDirs = refreshedEntries.filter((entry) => entry.isDirectory());
+      const trtexecDir = candidateDirs.find((entry) =>
+        fs.existsSync(path.join(extractTo, entry.name, 'trtexec.exe'))
+      );
+      if (trtexecDir) {
+        const nestedPath = path.join(extractTo, trtexecDir.name);
+        await moveContents(nestedPath, extractTo);
+        await fs.promises.rmdir(nestedPath);
+      }
+    }
+
     const fliv2DllsPath = path.join(extractTo, 'FLIv2-dlls');
     if (fs.existsSync(fliv2DllsPath)) {
       await moveContents(fliv2DllsPath, extractTo);

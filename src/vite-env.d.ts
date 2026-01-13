@@ -19,5 +19,6 @@ interface Window {
     googleAuth: () => Promise<{ success: boolean; message?: string; tokens?: any }>;
     downloadFromDrive: (fileId: string, destination: string, tokens?: any) => Promise<{ success: boolean; message?: string; needsAuth?: boolean; destination?: string; fileName?: string }>;
     onDownloadProgress: (callback: (progress: number) => void) => void;
+    extractZip: (zipPath: string, extractTo: string) => Promise<{ success: boolean; message?: string }>;
   };
 }
