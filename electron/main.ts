@@ -530,6 +530,26 @@ ipcMain.handle('extract-zip', async (_, { zipPath, extractTo }: any) => {
   try {
     await fs.promises.mkdir(extractTo, { recursive: true });
 
+    const moveContents = async (sourceDir: string, destinationDir: string) => {
+      const nestedEntries = await fs.promises.readdir(sourceDir, { withFileTypes: true });
+      await Promise.all(
+        nestedEntries.map(async (entry) => {
+          const fromPath = path.join(sourceDir, entry.name);
+          const toPath = path.join(destinationDir, entry.name);
+          try {
+            await fs.promises.rename(fromPath, toPath);
+          } catch (error: any) {
+            if (error.code === 'EEXIST') {
+              await fs.promises.rm(toPath, { recursive: true, force: true });
+              await fs.promises.rename(fromPath, toPath);
+            } else {
+              throw error;
+            }
+          }
+        })
+      );
+    };
+
     await new Promise<void>((resolve, reject) => {
       fs.createReadStream(zipPath)
         .pipe(unzipper.Extract({ path: extractTo }))
@@ -543,13 +563,14 @@ ipcMain.handle('extract-zip', async (_, { zipPath, extractTo }: any) => {
 
     if (topLevelDirs.length === 1 && topLevelFiles.length === 0) {
       const nestedPath = path.join(extractTo, topLevelDirs[0].name);
-      const nestedEntries = await fs.promises.readdir(nestedPath);
-      await Promise.all(
-        nestedEntries.map((entry) =>
-          fs.promises.rename(path.join(nestedPath, entry), path.join(extractTo, entry))
-        )
-      );
+      await moveContents(nestedPath, extractTo);
       await fs.promises.rmdir(nestedPath);
+    }
+
+    const fliv2DllsPath = path.join(extractTo, 'FLIv2-dlls');
+    if (fs.existsSync(fliv2DllsPath)) {
+      await moveContents(fliv2DllsPath, extractTo);
+      await fs.promises.rmdir(fliv2DllsPath);
     }
 
     return { success: true, message: `Extracted to ${extractTo}` };
