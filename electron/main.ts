@@ -286,9 +286,25 @@ ipcMain.handle('google-auth', async () => {
     const { BrowserWindow } = require('electron');
 
     // OAuth2 configuration
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+    if (
+      !clientId ||
+      !clientSecret ||
+      clientId === 'YOUR_CLIENT_ID' ||
+      clientSecret === 'YOUR_CLIENT_SECRET'
+    ) {
+      return {
+        success: false,
+        message:
+          'Google OAuth client is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, or use manual download.',
+      };
+    }
+
     const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID',
-      process.env.GOOGLE_CLIENT_SECRET || 'YOUR_CLIENT_SECRET',
+      clientId,
+      clientSecret,
       'http://localhost:3000/oauth2callback'
     );
 
@@ -352,9 +368,25 @@ ipcMain.handle('download-from-drive', async (_, { fileId, destination, tokens }:
       return { success: false, message: 'Not authenticated. Please authenticate first.', needsAuth: true };
     }
 
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    if (
+      !clientId ||
+      !clientSecret ||
+      clientId === 'YOUR_CLIENT_ID' ||
+      clientSecret === 'YOUR_CLIENT_SECRET'
+    ) {
+      return {
+        success: false,
+        message:
+          'Google OAuth client is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, or use manual download.',
+        needsAuth: true,
+      };
+    }
+
     const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID',
-      process.env.GOOGLE_CLIENT_SECRET || 'YOUR_CLIENT_SECRET',
+      clientId,
+      clientSecret,
       'http://localhost:3000/oauth2callback'
     );
     oauth2Client.setCredentials(tokens);
