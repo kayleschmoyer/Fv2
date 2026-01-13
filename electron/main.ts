@@ -413,6 +413,7 @@ ipcMain.handle('download-from-drive', async (_, { fileId, destination, tokens }:
       drive.files.get({
         fileId: id,
         fields: 'id,name,mimeType,shortcutDetails',
+        supportsAllDrives: true,
       });
 
     let resolvedFileId = fileId;
@@ -433,6 +434,8 @@ ipcMain.handle('download-from-drive', async (_, { fileId, destination, tokens }:
       const listResponse = await drive.files.list({
         q: `'${metadata.id}' in parents and trashed=false`,
         fields: 'files(id,name,mimeType)',
+        includeItemsFromAllDrives: true,
+        supportsAllDrives: true,
       });
       const onnxFile = listResponse.data.files?.find((file: any) =>
         file.name?.toLowerCase().endsWith('.onnx')
@@ -455,7 +458,7 @@ ipcMain.handle('download-from-drive', async (_, { fileId, destination, tokens }:
     }
 
     const response = await drive.files.get(
-      { fileId: resolvedFileId, alt: 'media' },
+      { fileId: resolvedFileId, alt: 'media', supportsAllDrives: true },
       { responseType: 'stream' }
     );
 
