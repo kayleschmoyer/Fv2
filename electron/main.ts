@@ -4,11 +4,19 @@ import * as fs from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import axios from 'axios';
+import dotenv from 'dotenv';
 import AdmZip from 'adm-zip';
 
 const execAsync = promisify(exec);
 
 let mainWindow: BrowserWindow | null = null;
+
+if (!app.isPackaged) {
+  const envPath = path.resolve(process.cwd(), '.env.local');
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+  }
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({

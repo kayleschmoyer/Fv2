@@ -39,6 +39,7 @@
   "dependencies": {
     "adm-zip": "^0.5.10",
     "axios": "^1.6.2",
+    "dotenv": "^16.6.1",
     "framer-motion": "^10.16.16",
     "googleapis": "^129.0.0",
     "lucide-react": "^0.294.0",
