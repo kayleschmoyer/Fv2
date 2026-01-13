@@ -223,9 +223,16 @@ async function buildTensorRTModel() {
   // Find the ONNX model file
   updateStepStatus('build-tensorrt', 'running', 25, 'Locating ONNX model...');
 
+  const defaultOnnxPath = `${PATHS.modelsOnnx}\\model.onnx`;
+  const defaultOnnxExists = await window.electronAPI.checkPathExists(defaultOnnxPath);
+
   // Get the model filename
-  const selectedFile = await window.electronAPI.selectFile();
-  if (!selectedFile) throw new Error('No ONNX model selected');
+  let selectedFile = defaultOnnxPath;
+  if (!defaultOnnxExists) {
+    updateStepStatus('build-tensorrt', 'running', 30, 'Please select the ONNX model...');
+    selectedFile = await window.electronAPI.selectFile();
+    if (!selectedFile) throw new Error('No ONNX model selected');
+  }
 
   const fileName = selectedFile.split('\\').pop()?.replace('.onnx', '') || 'model';
   const onnxPath = selectedFile;
