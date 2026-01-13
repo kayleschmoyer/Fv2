@@ -5,7 +5,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import axios from 'axios';
 import dotenv from 'dotenv';
-import AdmZip from 'adm-zip';
+import unzipper from 'unzipper';
 
 const execAsync = promisify(exec);
 
@@ -425,8 +425,15 @@ ipcMain.handle('download-from-drive', async (_, { fileId, destination, tokens }:
 // Extract ZIP file
 ipcMain.handle('extract-zip', async (_, { zipPath, extractTo }: any) => {
   try {
-    const zip = new AdmZip(zipPath);
-    zip.extractAllTo(extractTo, true);
+    await fs.promises.mkdir(extractTo, { recursive: true });
+
+    await new Promise<void>((resolve, reject) => {
+      fs.createReadStream(zipPath)
+        .pipe(unzipper.Extract({ path: extractTo }))
+        .on('close', () => resolve())
+        .on('error', (error: any) => reject(error));
+    });
+
     return { success: true, message: `Extracted to ${extractTo}` };
   } catch (error: any) {
     return { success: false, message: error.message };
