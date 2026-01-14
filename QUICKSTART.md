@@ -20,6 +20,14 @@ npm run package:win
 ```
 Find the installer in `release/` folder.
 
+### Optional: Bundle Google OAuth Credentials
+If you want the packaged installer to already include Google Drive OAuth credentials, create a `.env.local` file in the repo root before building:
+```bash
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+```
+The build will embed this file into the app bundle (for example, within `app.asar`) so end users do not need to set environment variables.
+
 ## For End Users
 
 ### Before Running the Installer

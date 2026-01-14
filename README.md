@@ -50,6 +50,18 @@ A modern, high-tech installer application for FLIv2 with automated setup, built 
 
    The installer will be created in the `release` directory.
 
+### Bundling Google OAuth Credentials (Optional)
+
+If you want the packaged installer to include Google Drive OAuth credentials (so end users do not need to set environment variables), place a `.env.local` file in the repo root *before* running the build. The packaging step embeds this file into the app bundle, and the app loads it at runtime.
+
+Example `.env.local`:
+```bash
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+```
+
+Note: The bundled `.env.local` is stored inside the app package (for example, within `app.asar`), so you may not see it as a standalone file in `release/`.
+
 ## 📁 Project Structure
 
 ```
