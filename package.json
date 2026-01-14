@@ -67,7 +67,8 @@
     },
     "files": [
       "dist/**/*",
-      "package.json"
+      "package.json",
+      ".env.local"
     ],
     "directories": {
       "output": "release"

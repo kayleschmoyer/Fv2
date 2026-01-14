@@ -11,12 +11,22 @@ const execAsync = promisify(exec);
 
 let mainWindow: BrowserWindow | null = null;
 
-if (!app.isPackaged) {
-  const envPath = path.resolve(process.cwd(), '.env.local');
-  if (fs.existsSync(envPath)) {
-    dotenv.config({ path: envPath });
+const loadEnv = () => {
+  const envPaths = app.isPackaged
+    ? [
+        path.join(app.getAppPath(), '.env.local'),
+        path.join(process.resourcesPath, '.env.local'),
+        path.join(path.dirname(app.getPath('exe')), '.env.local'),
+      ]
+    : [path.resolve(process.cwd(), '.env.local')];
+
+  for (const envPath of envPaths) {
+    if (fs.existsSync(envPath)) {
+      dotenv.config({ path: envPath });
+      break;
+    }
   }
-}
+};
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -47,7 +57,10 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  loadEnv();
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
