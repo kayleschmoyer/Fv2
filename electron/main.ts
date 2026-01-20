@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { exec } from 'child_process';
@@ -219,6 +219,290 @@ ipcMain.handle('select-file', async () => {
   }
   return result.filePaths[0];
 });
+
+ipcMain.handle('read-file', async (_, { filePath }: { filePath: string }) => {
+  try {
+    const contents = await fs.promises.readFile(filePath, 'utf-8');
+    return { success: true, contents };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle('write-file', async (_, { filePath, contents }: { filePath: string; contents: string }) => {
+  try {
+    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.promises.writeFile(filePath, contents, 'utf-8');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle(
+  'count-files-by-extension',
+  async (
+    _,
+    { dirPath, extension }: { dirPath: string; extension: string }
+  ): Promise<{ success: boolean; count?: number; message?: string }> => {
+    const normalizedExtension = extension.startsWith('.') ? extension.toLowerCase() : `.${extension.toLowerCase()}`;
+    const countFiles = async (currentPath: string): Promise<number> => {
+      let count = 0;
+      const entries = await fs.promises.readdir(currentPath, { withFileTypes: true });
+      for (const entry of entries) {
+        const entryPath = path.join(currentPath, entry.name);
+        if (entry.isDirectory()) {
+          count += await countFiles(entryPath);
+        } else if (entry.isFile() && entry.name.toLowerCase().endsWith(normalizedExtension)) {
+          count += 1;
+        }
+      }
+      return count;
+    };
+
+    try {
+      if (!fs.existsSync(dirPath)) {
+        return { success: true, count: 0 };
+      }
+      const count = await countFiles(dirPath);
+      return { success: true, count };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
+  }
+);
+
+ipcMain.handle('check-admin', async () => {
+  if (process.platform !== 'win32') {
+    return { success: true, isAdmin: true };
+  }
+  try {
+    await execAsync('NET SESSION');
+    return { success: true, isAdmin: true };
+  } catch (error: any) {
+    return { success: true, isAdmin: false, message: error.message };
+  }
+});
+
+ipcMain.handle('check-service-exists', async (_, { serviceName }: { serviceName: string }) => {
+  if (process.platform !== 'win32') {
+    return { success: true, exists: false };
+  }
+  try {
+    const { stdout } = await execAsync(`sc query "${serviceName}"`);
+    const exists = stdout.includes('SERVICE_NAME');
+    return { success: true, exists };
+  } catch (error: any) {
+    const message = error.message || '';
+    if (message.includes('1060')) {
+      return { success: true, exists: false };
+    }
+    return { success: false, exists: false, message };
+  }
+});
+
+ipcMain.handle('check-command-exists', async (_, { command }: { command: string }) => {
+  if (process.platform !== 'win32') {
+    return { success: true, exists: false };
+  }
+  try {
+    await execAsync(`where ${command}`);
+    return { success: true, exists: true };
+  } catch (error: any) {
+    return { success: true, exists: false, message: error.message };
+  }
+});
+
+ipcMain.handle('check-process-running', async (_, { processName }: { processName: string }) => {
+  if (process.platform !== 'win32') {
+    return { success: true, running: false };
+  }
+  try {
+    const { stdout } = await execAsync(`tasklist /FI "IMAGENAME eq ${processName}"`);
+    const running = stdout.toLowerCase().includes(processName.toLowerCase());
+    return { success: true, running };
+  } catch (error: any) {
+    return { success: false, running: false, message: error.message };
+  }
+});
+
+ipcMain.handle(
+  'confirm-dialog',
+  async (
+    _,
+    { title, message, detail }: { title: string; message: string; detail?: string }
+  ) => {
+    const result = await dialog.showMessageBox(mainWindow!, {
+      type: 'question',
+      buttons: ['Yes', 'No'],
+      defaultId: 0,
+      cancelId: 1,
+      title,
+      message,
+      detail,
+    });
+    return result.response === 0;
+  }
+);
+
+ipcMain.handle(
+  'prompt-text',
+  async (
+    _,
+    {
+      title,
+      message,
+      placeholder,
+      defaultValue,
+    }: { title: string; message: string; placeholder?: string; defaultValue?: string }
+  ) => {
+    try {
+      const promptWindow = new BrowserWindow({
+        width: 420,
+        height: 260,
+        parent: mainWindow!,
+        modal: true,
+        show: false,
+        frame: false,
+        backgroundColor: '#0F0F1E',
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          preload: path.join(__dirname, 'preload.cjs'),
+        },
+      });
+
+      const safeTitle = title.replace(/"/g, '&quot;');
+      const safeMessage = message.replace(/"/g, '&quot;');
+      const safePlaceholder = placeholder ? placeholder.replace(/"/g, '&quot;') : '';
+      const safeDefault = defaultValue ? defaultValue.replace(/"/g, '&quot;') : '';
+
+      const promptHtml = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <style>
+              body { margin: 0; padding: 20px; font-family: Arial, sans-serif; background: #0F0F1E; color: white; }
+              h3 { margin-top: 0; font-size: 16px; }
+              p { font-size: 13px; color: #cfcfcf; }
+              input {
+                width: 100%;
+                padding: 8px;
+                margin-top: 12px;
+                background: #1a1a2e;
+                border: 1px solid #333;
+                color: white;
+                border-radius: 4px;
+                box-sizing: border-box;
+              }
+              .buttons {
+                margin-top: 20px;
+                display: flex;
+                gap: 10px;
+                justify-content: flex-end;
+              }
+              button {
+                padding: 8px 16px;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+              }
+              .ok { background: #4CAF50; color: white; }
+              .cancel { background: #f44336; color: white; }
+            </style>
+          </head>
+          <body>
+            <h3>${safeTitle}</h3>
+            <p>${safeMessage}</p>
+            <input id="promptInput" type="text" placeholder="${safePlaceholder}" value="${safeDefault}" autofocus />
+            <div class="buttons">
+              <button class="cancel" onclick="window.electronAPI.credentialResponse({ cancelled: true })">Cancel</button>
+              <button class="ok" onclick="submitPrompt()">OK</button>
+            </div>
+            <script>
+              function submitPrompt() {
+                const value = document.getElementById('promptInput').value;
+                window.electronAPI.credentialResponse({ value });
+              }
+              document.getElementById('promptInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') submitPrompt();
+              });
+            </script>
+          </body>
+        </html>
+      `;
+
+      promptWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(promptHtml));
+      promptWindow.once('ready-to-show', () => {
+        promptWindow.show();
+      });
+
+      return await new Promise((resolve) => {
+        ipcMain.once('credential-response', (_, response) => {
+          promptWindow.close();
+          resolve(response);
+        });
+
+        promptWindow.on('closed', () => {
+          resolve({ cancelled: true });
+        });
+      });
+    } catch (error: any) {
+      return { cancelled: true, error: error.message };
+    }
+  }
+);
+
+ipcMain.handle('open-external', async (_, { url }: { url: string }) => {
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle(
+  'create-shortcut',
+  async (
+    _,
+    {
+      shortcutPath,
+      targetPath,
+      workingDirectory,
+      description,
+    }: {
+      shortcutPath: string;
+      targetPath: string;
+      workingDirectory?: string;
+      description?: string;
+    }
+  ) => {
+    if (process.platform !== 'win32') {
+      return { success: false, message: 'Shortcuts are only supported on Windows.' };
+    }
+    const safeShortcut = shortcutPath.replace(/"/g, '""');
+    const safeTarget = targetPath.replace(/"/g, '""');
+    const safeWorkingDir = (workingDirectory || path.dirname(targetPath)).replace(/"/g, '""');
+    const safeDescription = (description || '').replace(/"/g, '""');
+    const command = [
+      'powershell -Command',
+      `"\\$WScriptShell = New-Object -ComObject WScript.Shell;`,
+      `\\$Shortcut = \\$WScriptShell.CreateShortcut(\\\"${safeShortcut}\\\");`,
+      `\\$Shortcut.TargetPath = \\\"${safeTarget}\\\";`,
+      `\\$Shortcut.WorkingDirectory = \\\"${safeWorkingDir}\\\";`,
+      `\\$Shortcut.Description = \\\"${safeDescription}\\\";`,
+      '\\$Shortcut.Save()"',
+    ].join(' ');
+
+    try {
+      await execAsync(command);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
+  }
+);
 
 // Prompt for credentials when needed
 ipcMain.handle('prompt-credentials', async (_, { url }: any) => {
