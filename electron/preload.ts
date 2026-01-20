@@ -21,6 +21,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectFile: () => ipcRenderer.invoke('select-file'),
   extractZip: (zipPath: string, extractTo: string) =>
     ipcRenderer.invoke('extract-zip', { zipPath, extractTo }),
+  readFile: (filePath: string) => ipcRenderer.invoke('read-file', { filePath }),
+  writeFile: (filePath: string, contents: string) =>
+    ipcRenderer.invoke('write-file', { filePath, contents }),
+  countFilesByExtension: (dirPath: string, extension: string) =>
+    ipcRenderer.invoke('count-files-by-extension', { dirPath, extension }),
 
   // Authentication
   promptCredentials: (url: string) => ipcRenderer.invoke('prompt-credentials', { url }),
@@ -30,6 +35,30 @@ contextBridge.exposeInMainWorld('electronAPI', {
   googleAuth: () => ipcRenderer.invoke('google-auth'),
   downloadFromDrive: (fileId: string, destination: string, tokens?: any) =>
     ipcRenderer.invoke('download-from-drive', { fileId, destination, tokens }),
+
+  // System checks and dialogs
+  checkAdmin: () => ipcRenderer.invoke('check-admin'),
+  checkServiceExists: (serviceName: string) =>
+    ipcRenderer.invoke('check-service-exists', { serviceName }),
+  checkCommandExists: (command: string) =>
+    ipcRenderer.invoke('check-command-exists', { command }),
+  checkProcessRunning: (processName: string) =>
+    ipcRenderer.invoke('check-process-running', { processName }),
+  confirmDialog: (options: { title: string; message: string; detail?: string }) =>
+    ipcRenderer.invoke('confirm-dialog', options),
+  promptText: (options: {
+    title: string;
+    message: string;
+    placeholder?: string;
+    defaultValue?: string;
+  }) => ipcRenderer.invoke('prompt-text', options),
+  openExternal: (url: string) => ipcRenderer.invoke('open-external', { url }),
+  createShortcut: (options: {
+    shortcutPath: string;
+    targetPath: string;
+    workingDirectory?: string;
+    description?: string;
+  }) => ipcRenderer.invoke('create-shortcut', options),
 
   // Event listeners
   onDownloadProgress: (callback: (progress: number) => void) => {

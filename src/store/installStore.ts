@@ -17,6 +17,15 @@ export interface InstallStep {
   message?: string;
 }
 
+interface InstallOptions {
+  redownloadDlls: boolean;
+  redownloadTensorRT: boolean;
+  redownloadOnnx: boolean;
+  rebuildEngine: boolean;
+  regenerateLicense: boolean;
+  installAction1: boolean;
+}
+
 interface InstallStore {
   currentStep: 'pre-check' | 'auth' | 'install';
   setCurrentStep: (step: 'pre-check' | 'auth' | 'install') => void;
@@ -25,6 +34,8 @@ interface InstallStore {
   updatePreCheckItem: (id: string, checked: boolean) => void;
 
   installSteps: InstallStep[];
+  installOptions: InstallOptions;
+  setInstallOption: (key: keyof InstallOptions, value: boolean) => void;
   updateStepStatus: (
     id: string,
     status: InstallStep['status'],
@@ -35,6 +46,10 @@ interface InstallStore {
 
   isInstalling: boolean;
   setIsInstalling: (installing: boolean) => void;
+
+  cameraNames: string[];
+  builtEnginePath?: string;
+  msiPath?: string;
 }
 
 export const useInstallStore = create<InstallStore>((set) => ({
@@ -58,6 +73,27 @@ export const useInstallStore = create<InstallStore>((set) => ({
 
   installSteps: [
     {
+      id: 'check-admin',
+      title: 'Verify Administrator Access',
+      description: 'Ensure the installer is running with elevated privileges',
+      status: 'pending',
+      enabled: true,
+    },
+    {
+      id: 'check-existing-install',
+      title: 'Check Existing Installation',
+      description: 'Detect existing FLIv2 DLLs and confirm re-download',
+      status: 'pending',
+      enabled: true,
+    },
+    {
+      id: 'check-existing-service',
+      title: 'Check Existing Service',
+      description: 'Verify EnsightFLIv2 service is not already installed',
+      status: 'pending',
+      enabled: true,
+    },
+    {
       id: 'create-camera-hub',
       title: 'Create Camera Hub Directory',
       description: 'Create C:\\Ensight\\CameraHub folder',
@@ -67,7 +103,14 @@ export const useInstallStore = create<InstallStore>((set) => ({
     {
       id: 'place-camera-config',
       title: 'Place Camera XML Config',
-      description: 'Place camera config file in C:\\Ensight\\CameraHub',
+      description: 'Ensure camerahub-config.xml is in C:\\Ensight\\CameraHub',
+      status: 'pending',
+      enabled: true,
+    },
+    {
+      id: 'parse-camera-config',
+      title: 'Verify CameraHub Config',
+      description: 'Read camerahub-config.xml and list cameras',
       status: 'pending',
       enabled: true,
     },
@@ -88,14 +131,7 @@ export const useInstallStore = create<InstallStore>((set) => ({
     {
       id: 'create-models-dir',
       title: 'Create Models Directory',
-      description: 'Create C:\\Ensight\\FLI\\Models\\onnx folder',
-      status: 'pending',
-      enabled: true,
-    },
-    {
-      id: 'download-models',
-      title: 'Download ONNX Models',
-      description: 'Download latest datature-yolo8m model',
+      description: 'Create C:\\Ensight\\FLI\\Models\\onnx and TensorRT folders',
       status: 'pending',
       enabled: true,
     },
@@ -103,6 +139,13 @@ export const useInstallStore = create<InstallStore>((set) => ({
       id: 'download-tensorrt-tools',
       title: 'Download TensorRT Build Tools',
       description: 'Download and extract TensorRT tools',
+      status: 'pending',
+      enabled: true,
+    },
+    {
+      id: 'download-models',
+      title: 'Download ONNX Models',
+      description: 'Download latest datature-yolov8 ONNX model',
       status: 'pending',
       enabled: true,
     },
@@ -121,9 +164,30 @@ export const useInstallStore = create<InstallStore>((set) => ({
       enabled: true,
     },
     {
+      id: 'lock-gpu-clocks',
+      title: 'Lock GPU Clocks',
+      description: 'Lock NVIDIA GPU clocks to max if available',
+      status: 'pending',
+      enabled: true,
+    },
+    {
+      id: 'create-camera-configs',
+      title: 'Create Camera Configs',
+      description: 'Generate missing per-camera config XML files',
+      status: 'pending',
+      enabled: true,
+    },
+    {
       id: 'verify-fli-config',
       title: 'Verify FLI Config',
       description: 'Check for FLI-config.xml in C:\\Ensight\\FLI\\Config',
+      status: 'pending',
+      enabled: true,
+    },
+    {
+      id: 'license-fli',
+      title: 'License FLI',
+      description: 'Verify fli.lic is generated and placed in C:\\Ensight\\FLI',
       status: 'pending',
       enabled: true,
     },
@@ -149,13 +213,32 @@ export const useInstallStore = create<InstallStore>((set) => ({
       enabled: true,
     },
     {
+      id: 'install-action1',
+      title: 'Install Action1 Agent',
+      description: 'Ensure Action1 agent is installed and running',
+      status: 'pending',
+      enabled: true,
+    },
+    {
       id: 'verify-installation',
       title: 'Verify Installation',
-      description: 'Check FLI log and test viewer',
+      description: 'Validate viewer, engine, and config files are present',
       status: 'pending',
       enabled: true,
     },
   ],
+  installOptions: {
+    redownloadDlls: false,
+    redownloadTensorRT: false,
+    redownloadOnnx: false,
+    rebuildEngine: false,
+    regenerateLicense: false,
+    installAction1: false,
+  },
+  setInstallOption: (key, value) =>
+    set((state) => ({
+      installOptions: { ...state.installOptions, [key]: value },
+    })),
   updateStepStatus: (id, status, progress, message) =>
     set((state) => ({
       installSteps: state.installSteps.map((step) =>
@@ -171,4 +254,6 @@ export const useInstallStore = create<InstallStore>((set) => ({
 
   isInstalling: false,
   setIsInstalling: (installing) => set({ isInstalling: installing }),
+
+  cameraNames: [],
 }));
